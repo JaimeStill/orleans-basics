@@ -5,9 +5,15 @@ using Orleans.Configuration;
 
 try
 {
-    var message = args.First() ?? "Good morning!";
+    var message = args.Any() ? args.First() : "Good morning!";
+    var messages = GenerateAsyncMessages();
+
     using var client = await ConnectClient();
     await DoClientWork(client, message);
+
+    await foreach (var m in messages)
+        await DoClientWork(client, m);
+
     Console.ReadKey();
 
     return 0;
@@ -20,6 +26,15 @@ catch (Exception ex)
     Console.ReadKey();
 
     return 1;
+}
+
+static IAsyncEnumerable<string> GenerateAsyncMessages() =>
+    RangeAsync(1, 20);
+
+static async IAsyncEnumerable<string> RangeAsync(int start, int count)
+{
+    for (var i = 0; i < count; i++)
+        yield return await Task.FromResult($"message {start + i}");
 }
 
 static async Task<IClusterClient> ConnectClient()
